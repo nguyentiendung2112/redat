@@ -1,13 +1,13 @@
 package core
 
 const (
-	GET  = "get"
-	SET  = "set"
+	GET  = "GET"
+	SET  = "SET"
 	DEL  = "DEL"
 	KEYS = "KEYS"
 )
 
-var METHOD_NAME_BYTE_MAP = map[string]byte{
+var MethodNameByteMap = map[string]byte{
 	GET:  0x01,
 	SET:  0x02,
 	DEL:  0x03,

@@ -44,7 +44,7 @@ func main() {
 func ProcessCommand(client core.Client, command string) error {
 	parts := strings.SplitN(command, " ", 2)
 	methodName := parts[0]
-	methodByte, ok := core.METHOD_NAME_BYTE_MAP[methodName]
+	methodByte, ok := core.MethodNameByteMap[methodName]
 	if !ok {
 		return fmt.Errorf("unknown method: %s", methodName)
 	}

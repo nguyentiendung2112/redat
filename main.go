@@ -22,6 +22,20 @@ func ValidateSetParams(params string) bool {
 	return true
 }
 
+func ValidateDelParams(params string) bool {
+	if len(strings.Split(params, " ")) > 1 {
+		return false
+	}
+	return true
+}
+
+func ValidateKeysParams(params string) bool {
+	if len(params) != 0 {
+		return false
+	}
+	return true
+}
+
 func GetHandler(cmdParams string) (string, error) {
 	if !ValidateGetParams(cmdParams) {
 		return "", fmt.Errorf("syntax error, invalid parameters %s", cmdParams)
@@ -42,13 +56,31 @@ func SetHandler(cmdParams string) (string, error) {
 	return fmt.Sprintf("SET \"%s\" \"%s\"", parts[0], parts[1]), nil
 }
 
+func DelHandler(cmdParams string) (string, error) {
+	if !ValidateDelParams(cmdParams) {
+		return "", fmt.Errorf("syntax error, invalid parameters %s", cmdParams)
+	}
+
+	storage.Delete(cmdParams)
+	return fmt.Sprintf("deleted \"%s\"", cmdParams), nil
+}
+
+func ListKeysHandler(cmdParams string) (string, error) {
+	if !ValidateKeysParams(cmdParams) {
+		return "", fmt.Errorf("syntax error, invalid parameters %s", cmdParams)
+	}
+	return strings.Join(storage.Keys(), ", "), nil
+}
+
 func main() {
 	storage.Init()
 
 	var server = core.Server{}
 	server.Init()
-	server.Register(core.METHOD_NAME_BYTE_MAP[core.GET], GetHandler)
-	server.Register(core.METHOD_NAME_BYTE_MAP[core.SET], SetHandler)
+	server.Register(core.MethodNameByteMap[core.GET], GetHandler)
+	server.Register(core.MethodNameByteMap[core.SET], SetHandler)
+	server.Register(core.MethodNameByteMap[core.DEL], DelHandler)
+	server.Register(core.MethodNameByteMap[core.KEYS], ListKeysHandler)
 
 	fmt.Println("server started")
 	server.Start(":6380")
