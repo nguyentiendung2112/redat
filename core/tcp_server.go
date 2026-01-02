@@ -5,11 +5,15 @@ import (
 	"net"
 )
 
-type Handler func([]byte) error
+type Handler func(string) (string, error)
 
 type Server struct {
 	port     string
-	handlers map[string]Handler
+	handlers map[byte]Handler
+}
+
+func (server *Server) Init() {
+	server.handlers = make(map[byte]Handler)
 }
 
 func (server *Server) Start(port string) {
@@ -38,21 +42,47 @@ func (server *Server) HandleConnection(conn net.Conn) {
 	}(conn)
 
 	buf := make([]byte, 1024)
-	_, err := conn.Read(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	var firsThreeByteStr = string(buf[0:4])
-	handler, exists := server.handlers[firsThreeByteStr]
-	if exists {
-		handlerErr := handler(buf[4:])
-		if handlerErr != nil {
-			fmt.Println(handlerErr)
+	if n == 0 {
+		return
+	}
+
+	methodByte := buf[0]
+	handler, exists := server.handlers[methodByte]
+	if !exists {
+		if _, writeErr := conn.Write([]byte("ERR unknown method\n")); writeErr != nil {
+			fmt.Println(writeErr)
 		}
+		return
+	}
+
+	content := string(buf[1:n])
+
+	if len(content) > 0 && content[len(content)-1] == '\n' {
+		content = content[:len(content)-1]
+	}
+	if len(content) > 0 && content[len(content)-1] == '\r' {
+		content = content[:len(content)-1]
+	}
+
+	result, handlerErr := handler(content)
+	if handlerErr != nil {
+		fmt.Println(handlerErr)
+		if _, returnErr := conn.Write([]byte(fmt.Sprintf("ERR %s\n", handlerErr.Error()))); returnErr != nil {
+			fmt.Println(returnErr)
+		}
+		return
+	}
+
+	if _, writeErr := conn.Write([]byte(result + "\n")); writeErr != nil {
+		fmt.Println(writeErr)
 	}
 }
 
-func (server *Server) Register(name string, handler Handler) {
-	server.handlers[name] = handler
+func (server *Server) Register(methodCode byte, handler Handler) {
+	server.handlers[methodCode] = handler
 }
